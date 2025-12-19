@@ -7,6 +7,8 @@
 #include <thread>
 #include <windows.h>
 
+//TODO: add config file for base folder path and "date_in_file_name" bool option
+
 std::string get_formatted_time() {
   auto now = std::chrono::system_clock::now();
   return std::format("{:%b-%d-%Y_%H-%M}", now);
@@ -127,6 +129,7 @@ int main() {
 
         original_file_names = new_file_names;
     }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
   return 0;
 }
