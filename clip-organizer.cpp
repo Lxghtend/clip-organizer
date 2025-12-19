@@ -7,9 +7,6 @@
 #include <thread>
 #include <windows.h>
 
-//EscapeFromTarkovArena
-//EscapeFromTarkov
-
 std::string get_formatted_time() {
   auto now = std::chrono::system_clock::now();
   return std::format("{:%b-%d-%Y_%H-%M}", now);
@@ -20,12 +17,14 @@ std::string get_day() {
   return std::format("{:%b-%d}", now);
 }
 
+// Getting the name of the executable would be better, but this will do for now
 std::string get_foreground_window_name() {
   HWND hwnd = GetForegroundWindow();
   
   char title[256]; // buffer for window title
   GetWindowTextA(hwnd, title, sizeof(title));
 
+  printf("Foreground window detected: %s\n", title);
   return std::string(title);
 }
 
@@ -54,16 +53,18 @@ int handle_new_clip(const std::string& file_name, const std::string&window_name)
   
   std::filesystem::path game_folder;
   if (window_name == "EscapeFromTarkovArena") {
-      game_folder = base_folder / "EscapeFromTarkovArena";
+    game_folder = base_folder / "EscapeFromTarkovArena";
   } 
 
   else if (window_name == "EscapeFromTarkov") {
-      game_folder = base_folder / "EscapeFromTarkov";
+    game_folder = base_folder / "EscapeFromTarkov";
   } 
 
   else {
-      game_folder = base_folder / window_name;
+    game_folder = base_folder / window_name;
   }
+
+  std::filesystem::create_directories(game_folder);
 
   std::filesystem::path day_folder = game_folder / day;
   std::filesystem::create_directories(day_folder);
