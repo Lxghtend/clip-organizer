@@ -9,6 +9,16 @@
 //EscapeFromTarkovArena
 //EscapeFromTarkov
 
+std::string get_formatted_time() {
+  time_t now = time(nullptr);
+  struct tm* local = localtime(&now);
+
+  char buffer[64];
+  strftime(buffer, sizeof(buffer), "%d-%b-%H-%M", local);
+
+  return std::string(buffer);
+}
+
 std::string get_foreground_window_name() {
   HWND hwnd = GetForegroundWindow();
   
@@ -19,11 +29,11 @@ std::string get_foreground_window_name() {
 }
 
 bool file_is_stable(const std::filesystem::path& file_path, std::chrono::seconds wait_duration) {
-    auto initial_size = std::filesystem::file_size(file_path);
-    std::this_thread::sleep_for(wait_duration);
-    auto new_size = std::filesystem::file_size(file_path);
+  auto initial_size = std::filesystem::file_size(file_path);
+  std::this_thread::sleep_for(wait_duration);
+  auto new_size = std::filesystem::file_size(file_path);
 
-    return initial_size == new_size;
+  return initial_size == new_size;
 }
 
 int handle_new_clip(const std::string& file_name, const std::string&window_name) {
@@ -38,16 +48,18 @@ int handle_new_clip(const std::string& file_name, const std::string&window_name)
 
   std::filesystem::path save_path;
 
+  std::string time = get_formatted_time();
+
   if (window_name == "EscapeFromTarkovArena") {
-    save_path = file_path.parent_path() / "arena.mp4";
+    save_path = file_path.parent_path() / ("Arena" + time + ".mp4");
   } 
 
   else if (window_name == "EscapeFromTarkov") {
-    save_path = file_path.parent_path() / "tarkov.mp4";
+    save_path = file_path.parent_path() / ("Tarkov" + time + ".mp4");
   } 
 
   else {
-    save_path = file_path.parent_path() / (window_name + ".mp4");
+    save_path = file_path.parent_path() / (window_name + time + ".mp4");
   }
   
   std::filesystem::rename(file_path, save_path);
