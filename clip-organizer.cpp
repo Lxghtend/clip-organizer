@@ -1,4 +1,5 @@
-#include <iostream>
+#pragma comment(lib, "User32.lib")
+#include <print>
 #include <sys/stat.h>
 #include <filesystem>
 #include <vector>
@@ -10,13 +11,13 @@
 //EscapeFromTarkov
 
 std::string get_formatted_time() {
-  time_t now = time(nullptr);
-  struct tm* local = localtime(&now);
+  auto now = std::chrono::system_clock::now();
+  return std::format("{:%b-%d-%Y-%H-%M}", now);
+}
 
-  char buffer[64];
-  strftime(buffer, sizeof(buffer), "%d-%b-%H-%M", local);
-
-  return std::string(buffer);
+std::string get_day() {
+  auto now = std::chrono::system_clock::now();
+  return std::format("{:%b-%d}", now);
 }
 
 std::string get_foreground_window_name() {
@@ -37,44 +38,63 @@ bool file_is_stable(const std::filesystem::path& file_path, std::chrono::seconds
 }
 
 int handle_new_clip(const std::string& file_name, const std::string&window_name) {
-  std::cout << "Handling new clip..." << std::endl;
+  std::println("Handling new clip...");
+
+  std::string time = get_formatted_time();
+  std::string day = get_day();
 
   std::filesystem::path file_path(file_name);
 
   // Wait until the file is not being written to
   while (!file_is_stable(file_path, std::chrono::seconds(1))) {
-    std::cout << "Waiting for file to stabilize..." << std::endl;
+    std::println("Waiting for file to stabilize...");
   }
 
-  std::filesystem::path save_path;
-
-  std::string time = get_formatted_time();
-
+  std::filesystem::path base_folder = file_path.parent_path();
+  
+  std::filesystem::path game_folder;
   if (window_name == "EscapeFromTarkovArena") {
-    save_path = file_path.parent_path() / ("Arena" + time + ".mp4");
+      game_folder = base_folder / "EscapeFromTarkovArena";
   } 
 
   else if (window_name == "EscapeFromTarkov") {
-    save_path = file_path.parent_path() / ("Tarkov" + time + ".mp4");
+      game_folder = base_folder / "EscapeFromTarkov";
   } 
 
   else {
-    save_path = file_path.parent_path() / (window_name + time + ".mp4");
+      game_folder = base_folder / window_name;
   }
+
+  std::filesystem::path day_folder = game_folder / day;
+  std::filesystem::create_directories(day_folder);
+
+  std::filesystem::path new_file_name;
+  if (window_name == "EscapeFromTarkovArena") {
+    new_file_name = ("Arena-" + time + ".mp4");
+  } 
+
+  else if (window_name == "EscapeFromTarkov") {
+    new_file_name = ("Tarkov-" + time + ".mp4");
+  } 
+
+  else {
+    new_file_name = (window_name + "-" + time + ".mp4");
+  }
+
+  std::filesystem::path save_path = day_folder / new_file_name;
   
   std::filesystem::rename(file_path, save_path);
+
+  std::println("Moved clip to: {}", save_path.string());
   return 0; 
 }
 
 int main() {
   const char* dir = "F:\\temp-clips\\replays";
-  
-  // Define a struct stat variable to store the directory information
-  struct stat stat_buffer;
 
   // Check if the directory exists
-  if (stat(dir, &stat_buffer) != 0) {
-    std::cout << "Directory does not exist";
+  if (!std::filesystem::exists(dir)) {
+    std::println("Directory does not exist.");
     return -1;
   }
 
@@ -86,18 +106,18 @@ int main() {
   }
   
   //for (const auto & file : file_names) {
-  //    std::cout << file << ", ";
+  //    std::print("{}, ", file)
   //}
 
   while (true) {
     std::vector<std::string> new_file_names;
     for (const auto & entry : std::filesystem::directory_iterator(dir)) {
-        //std::cout << entry.path() << std::endl;
+        //std::println("{}", entry.path());
         new_file_names.push_back(entry.path().string());
     }
 
     if (new_file_names.size() > original_file_names.size()) {
-        std::cout << "Change detected in directory contents." << std::endl;
+        std::println("Change detected in directory contents.");
 
         std::string window_name = get_foreground_window_name();
 
