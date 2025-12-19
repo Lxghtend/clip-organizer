@@ -12,7 +12,7 @@
 
 std::string get_formatted_time() {
   auto now = std::chrono::system_clock::now();
-  return std::format("{:%b-%d-%Y-%H-%M}", now);
+  return std::format("{:%b-%d-%Y_%H-%M}", now);
 }
 
 std::string get_day() {
@@ -86,6 +86,7 @@ int handle_new_clip(const std::string& file_name, const std::string&window_name)
   std::filesystem::rename(file_path, save_path);
 
   std::println("Moved clip to: {}", save_path.string());
+  std::println();
   return 0; 
 }
 
