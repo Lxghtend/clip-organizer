@@ -7,7 +7,39 @@
 #include <thread>
 #include <windows.h>
 
-//TODO: add config file for base folder path and "date_in_file_name" bool option
+std::string read_config_string(
+    const std::string& section,
+    const std::string& key,
+    const std::string& default_value,
+    const std::string& filename = "config.ini"
+) {
+    char buffer[256];
+
+    GetPrivateProfileStringA(
+        section.c_str(),
+        key.c_str(),
+        default_value.c_str(),
+        buffer,
+        sizeof(buffer),
+        filename.c_str()
+    );
+
+    return buffer;
+}
+
+bool read_config_bool(
+    const std::string& section,
+    const std::string& key,
+    bool default_value,
+    const std::string& filename = "config.ini"
+) {
+    return GetPrivateProfileIntA(
+        section.c_str(),
+        key.c_str(),
+        default_value ? 1 : 0,
+        filename.c_str()
+    ) != 0;
+}
 
 std::string get_formatted_time() {
   auto now = std::chrono::system_clock::now();
@@ -19,15 +51,41 @@ std::string get_day() {
   return std::format("{:%b-%d}", now);
 }
 
-// Getting the name of the executable would be better, but this will do for now
-std::string get_foreground_window_name() {
-  HWND hwnd = GetForegroundWindow();
-  
-  char title[256]; // buffer for window title
-  GetWindowTextA(hwnd, title, sizeof(title));
+std::string get_executable_from_path(const std::string& path) {
+  return std::filesystem::path(path).stem().string();
+}
 
-  printf("Foreground window detected: %s\n", title);
-  return std::string(title);
+std::string get_foreground_window_path() {
+    std::string result;
+
+    HWND hwnd = GetForegroundWindow();
+
+    if (!hwnd) {
+        return std::string(result);
+    }
+
+    DWORD pid;
+    GetWindowThreadProcessId(hwnd, &pid);
+
+    HANDLE hProcess = OpenProcess(
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        FALSE,
+        pid
+    );
+
+    if (!hProcess) {
+        return std::string(result);
+    }
+
+    char path[MAX_PATH];
+    DWORD size = MAX_PATH;
+
+    if (QueryFullProcessImageNameA(hProcess, 0, path, &size)) {
+        result = std::string(path, size);
+    }
+
+    CloseHandle(hProcess);
+    return std::string(result);
 }
 
 bool file_is_stable(const std::filesystem::path& file_path, std::chrono::seconds wait_duration) {
@@ -38,7 +96,7 @@ bool file_is_stable(const std::filesystem::path& file_path, std::chrono::seconds
   return initial_size == new_size;
 }
 
-int handle_new_clip(const std::string& file_name, const std::string&window_name) {
+int handle_new_clip(const std::string& file_name, const std::string&executable_name, bool date_in_file_name) {
   std::println("Handling new clip...");
 
   std::string time = get_formatted_time();
@@ -53,38 +111,18 @@ int handle_new_clip(const std::string& file_name, const std::string&window_name)
 
   std::filesystem::path base_folder = file_path.parent_path();
   
-  std::filesystem::path game_folder;
-  if (window_name == "EscapeFromTarkovArena") {
-    game_folder = base_folder / "EscapeFromTarkovArena";
-  } 
-
-  else if (window_name == "EscapeFromTarkov") {
-    game_folder = base_folder / "EscapeFromTarkov";
-  } 
-
-  else {
-    game_folder = base_folder / window_name;
-  }
+  std::filesystem::path game_folder = base_folder / executable_name;
 
   std::filesystem::create_directories(game_folder);
 
-  std::filesystem::path day_folder = game_folder / day;
-  std::filesystem::create_directories(day_folder);
+  std::filesystem::path save_path = game_folder / (executable_name + "-" + time + ".mp4");
 
-  std::filesystem::path new_file_name;
-  if (window_name == "EscapeFromTarkovArena") {
-    new_file_name = ("Arena-" + time + ".mp4");
-  } 
+  if (date_in_file_name) {
+    std::filesystem::path day_folder = game_folder / day;
+    std::filesystem::create_directories(day_folder);
 
-  else if (window_name == "EscapeFromTarkov") {
-    new_file_name = ("Tarkov-" + time + ".mp4");
-  } 
-
-  else {
-    new_file_name = (window_name + "-" + time + ".mp4");
+    std::filesystem::path save_path = day_folder / (executable_name + "-" + time + ".mp4");
   }
-
-  std::filesystem::path save_path = day_folder / new_file_name;
   
   std::filesystem::rename(file_path, save_path);
 
@@ -94,7 +132,8 @@ int handle_new_clip(const std::string& file_name, const std::string&window_name)
 }
 
 int main() {
-  const char* dir = "F:\\temp-clips\\replays";
+  const char* dir = std::string(read_config_string("General", "base_folder", "C:\\Users\\")).c_str();
+  const bool date_in_file_name = read_config_bool("General", "date_in_file_name", true);
 
   // Check if the directory exists
   if (!std::filesystem::exists(dir)) {
@@ -123,9 +162,10 @@ int main() {
     if (new_file_names.size() > original_file_names.size()) {
         std::println("Change detected in directory contents.");
 
-        std::string window_name = get_foreground_window_name();
+        std::string window_path = get_foreground_window_path();
+        std::string executable_name = get_executable_from_path(window_path);
 
-        handle_new_clip(new_file_names.back(), window_name);
+        handle_new_clip(new_file_names.back(), executable_name, date_in_file_name);
 
         original_file_names = new_file_names;
     }
