@@ -106,8 +106,6 @@ int handle_new_clip(const std::string& file_name, const std::string&executable_n
   std::filesystem::path day_folder = game_folder / day;
   std::filesystem::create_directories(day_folder);
 
-  std::filesystem::path save_path = day_folder / (executable_name + "-" + time + ".mp4");
-
   std::filesystem::rename(file_path, save_path);
 
   std::println("Moved clip to: {}", save_path.string());
@@ -116,7 +114,7 @@ int handle_new_clip(const std::string& file_name, const std::string&executable_n
 }
 
 int main() {
-  const char* dir = std::string("D:\temp-clips\replays");
+  const char* dir = "D:\\temp-clips\\replays";
 
   // Check if the directory exists
   if (!std::filesystem::exists(dir)) {
