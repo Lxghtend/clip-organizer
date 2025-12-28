@@ -6,6 +6,7 @@
 #include <chrono>
 #include <thread>
 #include <windows.h>
+#include <unordered_set>
 
 std::string read_config_string(
   const std::string& section,
@@ -95,16 +96,18 @@ int handle_new_clip(const std::string& file_name, const std::string&executable_n
     std::println("Waiting for file to stabilize...");
   }
 
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
   std::filesystem::path base_folder = file_path.parent_path();
   
   std::filesystem::path game_folder = base_folder / executable_name;
 
   std::filesystem::create_directories(game_folder);
 
-  std::filesystem::path save_path = game_folder / (executable_name + "-" + time + ".mp4");
-
   std::filesystem::path day_folder = game_folder / day;
   std::filesystem::create_directories(day_folder);
+
+  std::filesystem::path save_path = day_folder / (executable_name + "-" + time + ".mp4");
 
   std::filesystem::rename(file_path, save_path);
 
@@ -122,6 +125,8 @@ int main() {
     return -1;
   }
 
+  std::println("Monitoring directory: {}", dir);
+
   // Iterate through the directory contents and print the file names
   std::vector<std::string> original_file_names;
   for (const auto & entry : std::filesystem::directory_iterator(dir)) {
@@ -133,22 +138,22 @@ int main() {
   //    std::print("{}, ", file)
   //}
 
+  std::unordered_set<std::string> files;
+  for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+    files.insert(entry.path().string());
+  }
+
   while (true) {
-    std::vector<std::string> new_file_names;
-    for (const auto & entry : std::filesystem::directory_iterator(dir)) {
-      //std::println("{}", entry.path());
-      new_file_names.push_back(entry.path().string());
-    }
+    for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+      auto path = entry.path().string();
 
-    if (new_file_names.size() > original_file_names.size()) {
-      std::println("Change detected in directory contents.");
+      if (files.insert(path).second) {
+        std::println("Change detected in directory contents.");
+        std::string window_path = get_foreground_window_path(); 
+        std::string executable_name = get_executable_from_path(window_path);
 
-      std::string window_path = get_foreground_window_path();
-      std::string executable_name = get_executable_from_path(window_path);
-
-      handle_new_clip(new_file_names.back(), executable_name);
-
-      //original_file_names = new_file_names;
+        handle_new_clip(path, executable_name);
+      }
     }
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
