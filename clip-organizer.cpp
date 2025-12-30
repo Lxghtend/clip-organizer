@@ -7,25 +7,12 @@
 #include <thread>
 #include <windows.h>
 #include <unordered_set>
+#include "INIReader.h"
 
-std::string read_config_string(
-  const std::string& section,
-  const std::string& key,
-  const std::string& default_value,
-  const std::string& filename = "config.ini"
-) {
-  char buffer[256];
+std::string read_config(const std::string& filename = "config.ini") {
+  INIReader reader(filename);
 
-  GetPrivateProfileStringA(
-    section.c_str(),
-    key.c_str(),
-    default_value.c_str(),
-    buffer,
-    sizeof(buffer),
-    filename.c_str()
-  );
-
-  return buffer;
+  return reader.Get("Directory", "default_directory", "C:\\Users\\");
 }
 
 std::string get_formatted_time() {
@@ -117,7 +104,7 @@ int handle_new_clip(const std::string& file_name, const std::string&executable_n
 }
 
 int main() {
-  const char* dir = "D:\\temp-clips\\replays";
+  std::string dir = read_config();
 
   // Check if the directory exists
   if (!std::filesystem::exists(dir)) {
