@@ -16,12 +16,18 @@ std::string read_config(const std::string& filename = "config.ini") {
 }
 
 std::string get_formatted_time() {
-  auto now = std::chrono::system_clock::now();
+  auto now = std::chrono::zoned_time{
+    std::chrono::current_zone(),
+    std::chrono::system_clock::now()
+  };
   return std::format("{:%b-%d-%Y_%H-%M}", now);
 }
 
 std::string get_day() {
-  auto now = std::chrono::system_clock::now();
+  auto now = std::chrono::zoned_time{
+    std::chrono::current_zone(),
+    std::chrono::system_clock::now()
+  };
   return std::format("{:%b-%d}", now);
 }
 
