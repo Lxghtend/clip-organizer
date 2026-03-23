@@ -101,11 +101,17 @@ int handle_new_clip(const std::string& file_name, const std::string&executable_n
   std::filesystem::create_directories(day_folder);
 
   std::filesystem::path save_path = day_folder / (executable_name + "-" + time + ".mp4");
+  
+  try {
+    std::filesystem::rename(file_path, save_path);
 
-  std::filesystem::rename(file_path, save_path);
+    std::println("Moved clip to: {}", save_path.string());
+    std::println();
+  }
 
-  std::println("Moved clip to: {}", save_path.string());
-  std::println();
+  catch (const std::filesystem::filesystem_error& e) {
+    std::println("Failed to move clip to: {}", save_path.string());
+  }
   return 0; 
 }
 
