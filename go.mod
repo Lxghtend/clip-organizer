@@ -1,4 +1,4 @@
-module clip-organizer
+module clip-organizer-niri
 
 go 1.25.6
 
