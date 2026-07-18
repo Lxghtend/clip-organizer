@@ -1,5 +1,1 @@
-## Requires: https://github.com/jtilly/inih
-
-`rc app.rc`
-
-`cl /std:c++latest clip-organizer.cpp app.res`
+# Linux version of the project; written in Go for use with Niri.
